@@ -26,7 +26,10 @@ func main() {
 		video.Read(&img)
 		gocv.CvtColor(img, &img, gocv.ColorBGRToHSV)
 		thresholded := gocv.NewMat()
-		gocv.InRangeWithScalar(img, gocv.Scalar{Val1: getPosFloat(lh), Val2: getPosFloat(ls), Val3: getPosFloat(lv)}, gocv.Scalar{Val1: getPosFloat(hh), Val2: getPosFloat(hs), Val3: getPosFloat(hv)}, &thresholded)
+		gocv.InRangeWithScalar(img,
+			gocv.Scalar{Val1: getPosFloat(lh), Val2: getPosFloat(ls), Val3: getPosFloat(lv)},
+			gocv.Scalar{Val1: getPosFloat(hh), Val2: getPosFloat(hs), Val3: getPosFloat(hv)},
+			&thresholded)
 
 		wi.IMShow(img)
 		wt.IMShow(thresholded)

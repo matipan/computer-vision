@@ -4,12 +4,19 @@ import (
 	"image"
 	"image/color"
 
+	"github.com/matipan/computer-vision/queue"
 	"gocv.io/x/gocv"
 )
 
 var (
 	rcolor = color.RGBA{G: 255, A: 255}
 	lcolor = color.RGBA{R: 255, A: 255}
+
+	lhsv = gocv.Scalar{Val1: 49, Val2: 89, Val3: 0}
+	hhsv = gocv.Scalar{Val1: 109, Val2: 255, Val3: 255}
+
+	size = image.Point{X: 600, Y: 600}
+	blur = image.Point{X: 11, Y: 11}
 
 	wt   = gocv.NewWindow("thersholded")
 	wi   = gocv.NewWindow("images")
@@ -18,27 +25,34 @@ var (
 )
 
 func main() {
-	lhsv := gocv.Scalar{Val1: 49, Val2: 89, Val3: 0}
-	hhsv := gocv.Scalar{Val1: 109, Val2: 255, Val3: 255}
+	defer img.Close()
+	defer mask.Close()
 
-	video, _ := gocv.OpenVideoCapture(0)
+	defer wi.Close()
+	defer wt.Close()
 	wt.ResizeWindow(600, 600)
 	wt.MoveWindow(0, 0)
 	wi.MoveWindow(600, 0)
 	wi.ResizeWindow(600, 600)
+
+	video, _ := gocv.OpenVideoCapture(0)
+	defer video.Close()
+
 	frame := gocv.NewMat()
 	hsv := gocv.NewMat()
 	kernel := gocv.NewMat()
+	defer frame.Close()
+	defer hsv.Close()
+	defer kernel.Close()
 
-	queue := New(40)
+	queue := queue.New(40)
 
 	for {
 		video.Read(&img)
 		gocv.Flip(img, &img, 1)
-		gocv.Resize(img, &img, image.Point{X: 600, Y: 600}, 0, 0, gocv.InterpolationLinear)
-		gocv.GaussianBlur(img, &frame, image.Point{X: 11, Y: 11}, 0, 0, gocv.BorderReflect101)
+		gocv.Resize(img, &img, size, 0, 0, gocv.InterpolationLinear)
+		gocv.GaussianBlur(img, &frame, blur, 0, 0, gocv.BorderReflect101)
 		gocv.CvtColor(frame, &hsv, gocv.ColorBGRToHSV)
-
 		gocv.InRangeWithScalar(hsv, lhsv, hhsv, &mask)
 		gocv.Erode(mask, &mask, kernel)
 		gocv.Dilate(mask, &mask, kernel)
@@ -51,11 +65,11 @@ func main() {
 			}
 			continue
 		}
+
 		rect := gocv.BoundingRect(cnt)
 		x, y := middle(rect)
 		queue.Push(image.Point{X: x, Y: y})
-
-		queue.RangeWithPrevious(func(c image.Point, p image.Point) {
+		queue.RangePrevious(func(c image.Point, p image.Point) {
 			gocv.Line(&img, p, c, lcolor, 2)
 		})
 
@@ -64,7 +78,6 @@ func main() {
 			break
 		}
 	}
-
 }
 
 func imShow() bool {
